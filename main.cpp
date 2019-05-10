@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string>
+#include <gtk-3.0/gtk/gtk.h>
 
 #include <boost/tokenizer.hpp>
 
@@ -91,6 +92,28 @@ int main(int argc, char *argv[])
     // Print the size of each vector for debugging purposes
     std::cout << user1Data.size() << std::endl;
     std::cout << user2Data.size() << std::endl;
+
+    GtkBuilder      *builder; 
+    GtkWidget       *window;
+
+    gtk_init(&argc, &argv);
+
+    builder = gtk_builder_new();
+    gtk_builder_add_from_file (builder, "window_main.glade", NULL);
+
+    window = GTK_WIDGET(gtk_builder_get_object(builder, "Location Data Parser"));
+    gtk_builder_connect_signals(builder, NULL);
+
+    g_object_unref(builder);
+
+    gtk_widget_show(window);                
+    gtk_main();
+    
     
     return 0;
+}
+
+void on_Location_Data_Parser_destroy()
+{
+    gtk_main_quit();
 }

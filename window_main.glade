@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.18.3 -->
+<interface>
+  <requires lib="gtk+" version="3.12"/>
+  <object class="GtkWindow" id="Location Data Parser">
+    <property name="can_focus">False</property>
+    <property name="title" translatable="yes">Location Data Parser</property>
+    <property name="default_width">440</property>
+    <property name="default_height">250</property>
+    <signal name="destroy" handler="on_Location_Data_Parser_destroy" swapped="no"/>
+    <child>
+      <object class="GtkFixed" id="fixed1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <object class="GtkToggleButton" id="play/pause">
+            <property name="label" translatable="yes">Play/Pause</property>
+            <property name="name">play/pause</property>
+            <property name="width_request">130</property>
+            <property name="height_request">75</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="toggled" handler="on_play/pause_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="x">5</property>
+            <property name="y">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkToggleButton" id="forward/reverse">
+            <property name="label" translatable="yes">Forward/Reverse</property>
+            <property name="width_request">130</property>
+            <property name="height_request">75</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <signal name="toggled" handler="on_forward/reverse_toggled" swapped="no"/>
+          </object>
+          <packing>
+            <property name="x">5</property>
+            <property name="y">85</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkRadioButton" id="speed.5">
+            <property name="label" translatable="yes">.5x Speed</property>
+            <property name="width_request">100</property>
+            <property name="height_request">80</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="xalign">0</property>
+            <property name="active">True</property>
+            <property name="draw_indicator">True</property>
+            <signal name="group-changed" handler="on_speed.5_group_changed" swapped="no"/>
+          </object>
+          <packing>
+            <property name="x">145</property>
+            <property name="y">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkRadioButton" id="speed1">
+            <property name="label" translatable="yes">1x Speed</property>
+            <property name="width_request">100</property>
+            <property name="height_request">80</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="xalign">0</property>
+            <property name="active">True</property>
+            <property name="draw_indicator">True</property>
+            <property name="group">speed.5</property>
+            <signal name="group-changed" handler="on_speed1_group_changed" swapped="no"/>
+          </object>
+          <packing>
+            <property name="x">145</property>
+            <property name="y">85</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkRadioButton" id="speed2">
+            <property name="label" translatable="yes">2x Speed</property>
+            <property name="width_request">100</property>
+            <property name="height_request">80</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="xalign">0</property>
+            <property name="active">True</property>
+            <property name="draw_indicator">True</property>
+            <property name="group">speed.5</property>
+            <signal name="group-changed" handler="on_speed2_group_changed" swapped="no"/>
+          </object>
+          <packing>
+            <property name="x">145</property>
+            <property name="y">165</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
