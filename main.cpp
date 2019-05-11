@@ -96,23 +96,27 @@ int64_t keyPressed(sf::Event event)
     return 0;
 }
 
-void displayLocationData(locationEntry loc){
+void displayLocationData(locationEntry loc)
+{
     //std::cout << "Timestamp: " << loc.timestamp << std::endl;
     std::cout << "Navisense Latitude: " << loc.navLat << " | GPS Latitude: " << loc.gpsLat << std::endl;
     std::cout << "Navisense Longitude: " << loc.navLon << " | GPS Longitude: " << loc.gpsLon << std::endl;
     std::cout << "Navisense Altitude: " << loc.navAlt << " | GPS Altitude: " << loc.gpsAlt << std::endl;
 }
 
-void displayLocationData(std::vector<locationEntry> loc){
-    std::cout.precision(15);
+void displayLocationData(std::vector<locationEntry> loc)
+{
+    std::cout.precision(10);
     std::cout << "\n\n\n\n\n\n\n";
-    for(int i = 0; i < loc.size(); i++){
+    for(int i = 0; i < loc.size(); i++)
+    {
         std::cout << "User " << i + 1 << std::endl;
-        if(loc[i].timestamp != NULL){
+        if(loc[i].timestamp != NULL)
+        {
+            std::cout << "Timestamp: " << loc[i].timestamp << std::endl;
             std::cout << "Navisense Latitude: " << loc[i].navLat << " | GPS Latitude: " << loc[i].gpsLat << std::endl;
             std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
-            
         }
     }
 }
@@ -122,10 +126,6 @@ void parseData(std::vector<std::vector<locationEntry>> data)
     bool playPause = false, forwardReverse = true, update = false;
     float speed = 1;
 
-    /*std::vector<locationEntry> next;
-    for(int i = 0; i < data.size(); i++)
-        next.push_back(data[i][0]);*/
-
     locationEntry blank;
     blank.timestamp = NULL;
 
@@ -134,35 +134,36 @@ void parseData(std::vector<std::vector<locationEntry>> data)
     for(int i = 0; i < data.size(); i++)
         it[i] = data[i].begin();
     
+    /*
     std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
     it[1]++;
     std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
     it[1]--;
     std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
+    */
     
+    displayLocationData(current);
 
-    
-    //Create stopwatch for each entry in current (each user)
-    
-    for(int i = 0; i < current.size(); i++)
-        std::cout << "User " << i + 1 << std::endl;
-
-    clock_t startTime = clock();
+    clock_t startTime;// = clock();
     clock_t sumTime = 0;
     double secondsPassed;
     
     sf::RenderWindow window(sf::VideoMode(1, 1), "Dungeon Generator");
-    while (window.isOpen()) {
+    while (window.isOpen()) 
+    {
 		sf::Event event;
 
 		// Poll for a key press
-		while (window.pollEvent(event)){
-			switch (event.type){
+		while (window.pollEvent(event))
+        {
+			switch (event.type)
+            {
                 case sf::Event::Closed:
 					window.close();
 					break;
                 case sf::Event::KeyPressed:
-                    switch(keyPressed(event)){
+                    switch(keyPressed(event))
+                    {
                         case 0:
                             std::cout << "Key not recognized" <<std::endl;
                             break;
@@ -172,30 +173,48 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                             break;
                         case 2:
                             if(playPause)
-                                std::cout << "Pausing..." << std::endl;
-
-                            else
-                                std::cout << "Resuming..." << std::endl;
+                            {
+                                std::cout << "Pausing playback" << std::endl;
+                                if(forwardReverse)
+                                    sumTime += (clock() - startTime) * speed;
+                                else
+                                    sumTime -= (clock() - startTime) * speed;
+                            }else
+                            {
+                                std::cout << "Resuming" << std::endl;
+                                startTime = clock();
+                            }
+                                
                             playPause = !playPause;
                             break;
                         case 3:
                             if(forwardReverse)
-                                std::cout << "Reversing" << std::endl;
-                            else
-                                std::cout << "Forwarding" << std::endl;
+                            {
+                                std::cout << "Scanning backwards" << std::endl;
+                                for(int i = 0; i < it.size(); i++)
+                                    it[i] -= 2;
+                                sumTime += (clock() - startTime) * speed;
+                            }else
+                            {
+                                std::cout << "Scanning forwards" << std::endl;
+                                for(int i = 0; i < it.size(); i++)
+                                    it[i] += 2;
+                                sumTime -= (clock() - startTime) * speed;
+                            }
+                            startTime = clock();
                             forwardReverse = !forwardReverse;
                             break;
                         case 4:
-                            std::cout << "Incrementing speed" << std::endl;
-                            if(speed == 2){
-                                sumTime += (clock() - startTime)*speed;
+                            if(forwardReverse)
+                                sumTime += (clock() - startTime) * speed;
+                            else
+                                sumTime -= (clock() - startTime) * speed;
+                            startTime = clock();
+                            if(speed == 2)
                                 speed = .5;
-                                startTime = clock();
-                            }else{
-                                sumTime += (clock() - startTime)*speed;
+                            else
                                 speed *= 2;
-                                startTime = clock();
-                            }
+                            std::cout << "Speed set to " << speed << "x speed" << std::endl;
                             break;
                     }
 					break;
@@ -208,16 +227,11 @@ void parseData(std::vector<std::vector<locationEntry>> data)
             // If we are going forward
             if(forwardReverse)
             {
-                /*std::cout << "Forward at " << speed << std::endl;
-                secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
-                for(int i = 0; i < next.size(); i++){
-                    if(secondsPassed >= next[i].timestamp){
-                        current[i] = next[i];
-                    }
-                }*/
-                secondsPassed = (((clock() - startTime)*speed) + sumTime) / CLOCKS_PER_SEC;
-                for(int i = 0; i < current.size(); i++){
-                    if(secondsPassed >= it[i][0].timestamp){
+                secondsPassed = (((clock() - startTime) * speed) + sumTime) / CLOCKS_PER_SEC;
+                for(int i = 0; i < current.size(); i++)
+                {
+                    if(secondsPassed >= it[i][0].timestamp)
+                    {
                         current[i] = it[i][0];
                         it[i]++;
                         update = true;
@@ -225,11 +239,20 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                 }
             }else
             {
-                std::cout << "Backward at " << speed << std::endl;
-
+                secondsPassed = (sumTime - ((clock() - startTime) * speed)) / CLOCKS_PER_SEC;
+                for(int i = 0; i < current.size(); i++)
+                {
+                    if(secondsPassed <= it[i][0].timestamp)
+                    {
+                        current[i] = it[i][0];
+                        it[i]--;
+                        update = true;
+                    }
+                }
             }
 
-            if(update){
+            if(update)
+            {
                 displayLocationData(current);
                 update = false;
             }
