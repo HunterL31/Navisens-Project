@@ -17,11 +17,11 @@
 
 // Holds the values for a single entry in the user log file
 struct locationEntry {
-    double timestamp;   // Timestamp value
-    double navLat;      // Navisens Latitude/Longitude/Altitude
+    double timestamp = NULL;    // Timestamp value
+    double navLat;              // Navisens Latitude/Longitude/Altitude
     double navLon;
     double navAlt;
-    double gpsLat;      // GPS Latitude/Longitude/Altitude
+    double gpsLat;              // GPS Latitude/Longitude/Altitude
     double gpsLon;
     double gpsAlt;
 };
@@ -147,11 +147,12 @@ void displayLocationData(std::vector<locationEntry> &loc)
 */
 void parseData(std::vector<std::vector<locationEntry>> data)
 {
-    bool playPause = false, forwardReverse = true, update = false;
+    bool play = false;
+    bool forward = true;
+    bool update = false;
     float speed = 1;
 
     locationEntry blank;
-    blank.timestamp = NULL;
 
     std::vector<locationEntry>  current(data.size(), blank);
     std::vector<std::vector<locationEntry>::iterator> it(data.size());
@@ -160,7 +161,7 @@ void parseData(std::vector<std::vector<locationEntry>> data)
     
     displayLocationData(current);
 
-    clock_t startTime;// = clock();
+    clock_t startTime;
     clock_t sumTime = 0;
     double secondsPassed;
     
@@ -188,12 +189,12 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                             window.close();
                             break;
                         case 2:
-                            if(playPause)
+                            if(play)
                             {
                                 std::cout << "Pausing playback" << std::endl;
 
                                 // if you are moving forward then add the elapsed time to the total
-                                if(forwardReverse)
+                                if(forward)
                                     sumTime += (clock() - startTime) * speed;
 
                                 // otherwise subtract the elapsed time from the total
@@ -206,34 +207,38 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                                 startTime = clock();
                             }
                                 
-                            playPause = !playPause;
+                            play = !play;
                             break;
                         case 3:
-                            if(forwardReverse)
+                            if(forward)
                             {
-                                // If moving forwards, decrement the iterator by 2, once to reach the current value and again to move behind it
+                                // If moving forwards, decrement the iterators by 2, once to reach the current value and again to move behind it
                                 std::cout << "Scanning backwards" << std::endl;
                                 for(int i = 0; i < it.size(); i++)
                                     it[i] -= 2;
-                                sumTime += (clock() - startTime) * speed;
+                                if(play)
+                                    sumTime += (clock() - startTime) * speed;
                             }else
                             {
-                                // Otherwise increment the iterator by 2, once to reach the current value and again to move ahead of it
+                                // Otherwise increment the iterators by 2, once to reach the current value and again to move ahead of it
                                 std::cout << "Scanning forwards" << std::endl;
                                 for(int i = 0; i < it.size(); i++)
                                     it[i] += 2;
-                                sumTime -= (clock() - startTime) * speed;
+                                if(play)
+                                    sumTime -= (clock() - startTime) * speed;
                             }
-                            startTime = clock();
-                            forwardReverse = !forwardReverse;
+                            if(play)
+                                startTime = clock();
+                            forward = !forward;
                             break;
                         case 4:
-                            if(forwardReverse)
-                                sumTime += (clock() - startTime) * speed;
-                            else
-                                sumTime -= (clock() - startTime) * speed;
-                            startTime = clock();
-                            
+                            if(play){
+                                if(forward)
+                                    sumTime += (clock() - startTime) * speed;
+                                else
+                                    sumTime -= (clock() - startTime) * speed;
+                                startTime = clock();
+                            }
                             // Speed moves cyclically from .5->1->2->.5
                             if(speed == 2)
                                 speed = .5;
@@ -247,10 +252,10 @@ void parseData(std::vector<std::vector<locationEntry>> data)
         }
 
         // If playback is not paused
-        if(playPause)
+        if(play)
         {
             // If we are going forward
-            if(forwardReverse)
+            if(forward)
             { 
                 // Total time plus the elapsed time since the last change
                 secondsPassed = (((clock() - startTime) * speed) + sumTime) / CLOCKS_PER_SEC;
