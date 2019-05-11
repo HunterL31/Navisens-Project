@@ -17,11 +17,11 @@
 
 // Holds the values for a single entry in the user log file
 struct locationEntry {
-    double timestamp;
-    double navLat;
+    double timestamp;   // Timestamp value
+    double navLat;      // Navisens Latitude/Longitude/Altitude
     double navLon;
     double navAlt;
-    double gpsLat;
+    double gpsLat;      // GPS Latitude/Longitude/Altitude
     double gpsLon;
     double gpsAlt;
 };
@@ -34,7 +34,7 @@ struct locationEntry {
 */
 locationEntry newEntry(std::vector<std::string> &vec)
 {
-
+    // Temporary object to hold the extracted values
     locationEntry temp;
 
     temp.timestamp = stod(vec[0]);
@@ -45,6 +45,7 @@ locationEntry newEntry(std::vector<std::string> &vec)
     temp.gpsLon = stod(vec[5]);
     temp.gpsAlt = stod(vec[6]);
 
+    // Return the temp object so that it can be added to the main vector
     return temp;
 }
 
@@ -80,7 +81,12 @@ void tokenizeLog(std::vector<locationEntry> &data, std::string filename)
     }
 }
 
-int64_t keyPressed(sf::Event event)
+/*
+*   Input: Key press event
+*   Output: Number denoting which button was pressed
+*   Description: Informs data parser if an action needs to be taken based on the last key that was pressed
+*/
+int keyPressed(sf::Event event)
 {
     using namespace std;
 
@@ -96,17 +102,29 @@ int64_t keyPressed(sf::Event event)
     return 0;
 }
 
+/*
+*   Input: locationEntry object
+*   Output: Values stored inside object
+*   Description: Prints out all the values in a single locationEntry object
+*/
 void displayLocationData(locationEntry loc)
 {
-    //std::cout << "Timestamp: " << loc.timestamp << std::endl;
+    std::cout << "Timestamp: " << loc.timestamp << std::endl;
     std::cout << "Navisense Latitude: " << loc.navLat << " | GPS Latitude: " << loc.gpsLat << std::endl;
     std::cout << "Navisense Longitude: " << loc.navLon << " | GPS Longitude: " << loc.gpsLon << std::endl;
     std::cout << "Navisense Altitude: " << loc.navAlt << " | GPS Altitude: " << loc.gpsAlt << std::endl;
 }
 
-void displayLocationData(std::vector<locationEntry> loc)
+/*
+*   Input: locationEntry object vector
+*   Output: Neatly formatted values for each object in the vector
+*   Description: Used to print out the values of every locationEntry object in a vector
+*/
+void displayLocationData(std::vector<locationEntry> &loc)
 {
     std::cout.precision(10);
+
+    // Mainly used to clear the terminal so that the text is easier to read as it flashes across the screen
     std::cout << "\n\n\n\n\n\n\n";
     for(int i = 0; i < loc.size(); i++)
     {
@@ -121,6 +139,12 @@ void displayLocationData(std::vector<locationEntry> loc)
     }
 }
 
+/*
+*   Input: Tokenized data from provided csv files
+*   Output: Continuous real time data stream of Latitude/Longitude/Altitude values from both the GPS and Navisens
+*   Description: Once the csv files have been tokenized this function prints out the data values in real time 
+*                allowing for speed and directional changes 
+*/
 void parseData(std::vector<std::vector<locationEntry>> data)
 {
     bool playPause = false, forwardReverse = true, update = false;
@@ -133,14 +157,6 @@ void parseData(std::vector<std::vector<locationEntry>> data)
     std::vector<std::vector<locationEntry>::iterator> it(data.size());
     for(int i = 0; i < data.size(); i++)
         it[i] = data[i].begin();
-    
-    /*
-    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
-    it[1]++;
-    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
-    it[1]--;
-    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
-    */
     
     displayLocationData(current);
 
@@ -175,12 +191,17 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                             if(playPause)
                             {
                                 std::cout << "Pausing playback" << std::endl;
+
+                                // if you are moving forward then add the elapsed time to the total
                                 if(forwardReverse)
                                     sumTime += (clock() - startTime) * speed;
+
+                                // otherwise subtract the elapsed time from the total
                                 else
                                     sumTime -= (clock() - startTime) * speed;
                             }else
                             {
+                                // Start counting from now
                                 std::cout << "Resuming" << std::endl;
                                 startTime = clock();
                             }
@@ -190,12 +211,14 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                         case 3:
                             if(forwardReverse)
                             {
+                                // If moving forwards, decrement the iterator by 2, once to reach the current value and again to move behind it
                                 std::cout << "Scanning backwards" << std::endl;
                                 for(int i = 0; i < it.size(); i++)
                                     it[i] -= 2;
                                 sumTime += (clock() - startTime) * speed;
                             }else
                             {
+                                // Otherwise increment the iterator by 2, once to reach the current value and again to move ahead of it
                                 std::cout << "Scanning forwards" << std::endl;
                                 for(int i = 0; i < it.size(); i++)
                                     it[i] += 2;
@@ -210,6 +233,8 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                             else
                                 sumTime -= (clock() - startTime) * speed;
                             startTime = clock();
+                            
+                            // Speed moves cyclically from .5->1->2->.5
                             if(speed == 2)
                                 speed = .5;
                             else
@@ -221,29 +246,36 @@ void parseData(std::vector<std::vector<locationEntry>> data)
             }
         }
 
-        // If we are currently playing
+        // If playback is not paused
         if(playPause)
         {
             // If we are going forward
             if(forwardReverse)
-            {
+            { 
+                // Total time plus the elapsed time since the last change
                 secondsPassed = (((clock() - startTime) * speed) + sumTime) / CLOCKS_PER_SEC;
                 for(int i = 0; i < current.size(); i++)
                 {
+                    // If the current time is equal to or greater than the next timestamp in ascending chronological order
                     if(secondsPassed >= it[i][0].timestamp)
                     {
+                        // Assign a new value to the current object and increment the iterator
                         current[i] = it[i][0];
                         it[i]++;
                         update = true;
                     }
                 }
+            // Otherwise we are moving backwards
             }else
             {
+                // Total time minus the elapsed time since the last change
                 secondsPassed = (sumTime - ((clock() - startTime) * speed)) / CLOCKS_PER_SEC;
                 for(int i = 0; i < current.size(); i++)
                 {
+                    // If the current time is less than or equal to the next timestamp in descending chronological order
                     if(secondsPassed <= it[i][0].timestamp)
                     {
+                        // Assign a new value to the current object and decrement the iterator
                         current[i] = it[i][0];
                         it[i]--;
                         update = true;
@@ -251,18 +283,21 @@ void parseData(std::vector<std::vector<locationEntry>> data)
                 }
             }
 
+            // If the current data vector has been updated, display the new data
             if(update)
             {
                 displayLocationData(current);
                 update = false;
             }
-                
         }
     }
-
-    //std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
 }
 
+/*
+*   Input: Comman line arguments specifying the names of each users csv file
+*   Output: N/A
+*   Description: Takes in the names of each csv file (no practical limit) and, assuming they exist sends them to the tokenizer function
+*/
 int main(int argc, char *argv[])
 {
     using namespace std;
