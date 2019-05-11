@@ -4,10 +4,15 @@
 #include <iterator>
 #include <algorithm>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <string>
-#include <gtk-3.0/gtk/gtk.h>
+#include <chrono>
+#include <thread>
 
+#include <SFML/Graphics.hpp>
+#include <SFML/OpenGL.hpp>
 #include <boost/tokenizer.hpp>
 
 // Holds the values for a single entry in the user log file
@@ -75,45 +80,190 @@ void tokenizeLog(std::vector<locationEntry> &data, std::string filename)
     }
 }
 
-int main(int argc, char *argv[])
+int64_t keyPressed(sf::Event event)
 {
+    using namespace std;
 
-    // Filenames of csv files to be parsed
-    std::string log1(argv[1]);
-    std::string log2(argv[2]);
+    if(event.key.code == sf::Keyboard::Q)
+        return 1;
+    else if(event.key.code == sf::Keyboard::P)
+        return 2;
+    else if(event.key.code == sf::Keyboard::R)
+        return 3;
+    else if(event.key.code == sf::Keyboard::U)
+        return 4;
 
-    // Vector arrays to hold each entry in the log files
-    std::vector<locationEntry> user1Data, user2Data;
-
-    // Populate the vectors with user data
-    tokenizeLog(user1Data, log1);
-    tokenizeLog(user2Data, log2);
-
-    // Print the size of each vector for debugging purposes
-    std::cout << user1Data.size() << std::endl;
-    std::cout << user2Data.size() << std::endl;
-
-    GtkBuilder      *builder; 
-    GtkWidget       *window;
-
-    gtk_init(&argc, &argv);
-
-    builder = gtk_builder_new();
-    gtk_builder_add_from_file (builder, "window_main.glade", NULL);
-
-    window = GTK_WIDGET(gtk_builder_get_object(builder, "Location Data Parser"));
-    gtk_builder_connect_signals(builder, NULL);
-
-    g_object_unref(builder);
-
-    gtk_widget_show(window);                
-    gtk_main();
-    
-    
     return 0;
 }
 
-void on_Location_Data_Parser_destroy()
+void displayLocationData(locationEntry loc){
+    //std::cout << "Timestamp: " << loc.timestamp << std::endl;
+    std::cout << "Navisense Latitude: " << loc.navLat << " | GPS Latitude: " << loc.gpsLat << std::endl;
+    std::cout << "Navisense Longitude: " << loc.navLon << " | GPS Longitude: " << loc.gpsLon << std::endl;
+    std::cout << "Navisense Altitude: " << loc.navAlt << " | GPS Altitude: " << loc.gpsAlt << std::endl;
+}
+
+void displayLocationData(std::vector<locationEntry> loc){
+    std::cout.precision(15);
+    std::cout << "\n\n\n\n\n\n\n";
+    for(int i = 0; i < loc.size(); i++){
+        std::cout << "User " << i + 1 << std::endl;
+        if(loc[i].timestamp != NULL){
+            std::cout << "Navisense Latitude: " << loc[i].navLat << " | GPS Latitude: " << loc[i].gpsLat << std::endl;
+            std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
+            std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
+            
+        }
+    }
+}
+
+void parseData(std::vector<std::vector<locationEntry>> data)
 {
-    gtk_main_quit();
+    bool playPause = false, forwardReverse = true, update = false;
+    float speed = 1;
+
+    /*std::vector<locationEntry> next;
+    for(int i = 0; i < data.size(); i++)
+        next.push_back(data[i][0]);*/
+
+    locationEntry blank;
+    blank.timestamp = NULL;
+
+    std::vector<locationEntry>  current(data.size(), blank);
+    std::vector<std::vector<locationEntry>::iterator> it(data.size());
+    for(int i = 0; i < data.size(); i++)
+        it[i] = data[i].begin();
+    
+    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
+    it[1]++;
+    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
+    it[1]--;
+    std::cout << it[0][0].timestamp << " " << it[1][0].timestamp << std::endl;
+    
+
+    
+    //Create stopwatch for each entry in current (each user)
+    
+    for(int i = 0; i < current.size(); i++)
+        std::cout << "User " << i + 1 << std::endl;
+
+    clock_t startTime = clock();
+    clock_t sumTime = 0;
+    double secondsPassed;
+    
+    sf::RenderWindow window(sf::VideoMode(1, 1), "Dungeon Generator");
+    while (window.isOpen()) {
+		sf::Event event;
+
+		// Poll for a key press
+		while (window.pollEvent(event)){
+			switch (event.type){
+                case sf::Event::Closed:
+					window.close();
+					break;
+                case sf::Event::KeyPressed:
+                    switch(keyPressed(event)){
+                        case 0:
+                            std::cout << "Key not recognized" <<std::endl;
+                            break;
+                        case 1:
+                            std::cout << "Quitting..." << std::endl;
+                            window.close();
+                            break;
+                        case 2:
+                            if(playPause)
+                                std::cout << "Pausing..." << std::endl;
+
+                            else
+                                std::cout << "Resuming..." << std::endl;
+                            playPause = !playPause;
+                            break;
+                        case 3:
+                            if(forwardReverse)
+                                std::cout << "Reversing" << std::endl;
+                            else
+                                std::cout << "Forwarding" << std::endl;
+                            forwardReverse = !forwardReverse;
+                            break;
+                        case 4:
+                            std::cout << "Incrementing speed" << std::endl;
+                            if(speed == 2){
+                                sumTime += (clock() - startTime)*speed;
+                                speed = .5;
+                                startTime = clock();
+                            }else{
+                                sumTime += (clock() - startTime)*speed;
+                                speed *= 2;
+                                startTime = clock();
+                            }
+                            break;
+                    }
+					break;
+            }
+        }
+
+        // If we are currently playing
+        if(playPause)
+        {
+            // If we are going forward
+            if(forwardReverse)
+            {
+                /*std::cout << "Forward at " << speed << std::endl;
+                secondsPassed = (clock() - startTime) / CLOCKS_PER_SEC;
+                for(int i = 0; i < next.size(); i++){
+                    if(secondsPassed >= next[i].timestamp){
+                        current[i] = next[i];
+                    }
+                }*/
+                secondsPassed = (((clock() - startTime)*speed) + sumTime) / CLOCKS_PER_SEC;
+                for(int i = 0; i < current.size(); i++){
+                    if(secondsPassed >= it[i][0].timestamp){
+                        current[i] = it[i][0];
+                        it[i]++;
+                        update = true;
+                    }
+                }
+            }else
+            {
+                std::cout << "Backward at " << speed << std::endl;
+
+            }
+
+            if(update){
+                displayLocationData(current);
+                update = false;
+            }
+                
+        }
+    }
+
+    //std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+}
+
+int main(int argc, char *argv[])
+{
+    using namespace std;
+
+    // Vector to hold any ammount of user log files
+    vector<string>users;
+
+    // Load each argument (csv filename)
+    for(int i = 1; i < argc; i++)
+        users.push_back(argv[i]);
+
+    // Vector to hold the entries to each users log files
+    vector<vector<locationEntry>> data;
+
+    // For each user log file, tokenize its entries and store them in the data vector
+    for(int i = 0; i < users.size(); i++)
+    {
+        vector<locationEntry> temp;
+        tokenizeLog(temp, users[i]);
+        data.push_back(temp);
+    }
+    
+    // Function to handle moving through data
+    parseData(data);
+    
+    return 0;
 }

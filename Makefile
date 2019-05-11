@@ -1,7 +1,8 @@
-
+LIBS=-lsfml-graphics -lsfml-window -lsfml-system
 
 all:
-	g++ -c main.cpp -std=c++11 `pkg-config --cflags --libs gtk+-3.0` -rdynamic
-	g++ main.o -o Main -std=c++11 `pkg-config --cflags --libs gtk+-3.0` -rdynamic
+	g++ -rdynamic -c main.cpp -std=c++11
+	g++ -rdynamic main.o -o Main $(LIBS) -std=c++11
+	./Main user1.csv user2.csv
 clean:
 	rm main.o Main
