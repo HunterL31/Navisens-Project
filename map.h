@@ -24,12 +24,47 @@ struct locationEntry {
 };
 
 // Handler for osmium reader that gathers relevant data for all nodes
-class MyHandler : public osmium::handler::Handler {
+class nodeHandler : public osmium::handler::Handler {
 
     public:
         std::vector<std::pair<osmium::Location, int>> nodes;
         void node(const osmium::Node& node){
             nodes.push_back(std::make_pair(node.location(), node.id()));
+        }
+};
+
+// Handler for osmium reader that prints out all bars. Can easily be modified to search for any tag and to limit its search to a range of ids
+class nameHandler : public osmium::handler::Handler {
+
+    void output_bars(const osmium::OSMObject& object){
+        const osmium::TagList& tags = object.tags();
+        if (tags.has_tag("amenity", "bar")) {
+
+            // Print name of the pub if it is set.
+            const char* name = tags["name"];
+            if (name) {
+                std::cout << name << "\n";
+            } else {
+                std::cout << "bar with unknown name\n";
+            }
+
+            // Iterate over all tags finding those which start with "addr:"
+            // and print them.
+            for (const osmium::Tag& tag : tags) {
+                if (!std::strncmp(tag.key(), "addr:", 5)) {
+                    std::cout << "  " << tag.key() << ": " << tag.value() << "\n";
+                }
+            }
+        }
+    }
+
+    public:
+        void node(const osmium::Node& node){
+            output_bars(node);
+        }
+
+        void way(const osmium::Way& way) {
+            output_bars(way);
         }
 };
 
@@ -86,7 +121,7 @@ void Map::gatherNodes(std::string osmFile)
 
     try{
         osmium::io::Reader reader{osmFile, osmium::osm_entity_bits::node};
-        MyHandler handler;
+        nodeHandler handler;
 
         osmium::apply(reader, handler);
         reader.close();
