@@ -181,9 +181,7 @@ void parseData(std::vector<std::vector<locationEntry>> &data, Map &map)
     std::vector<std::vector<locationEntry>::iterator> it(data.size());
     for(int i = 0; i < data.size(); i++)
         it[i] = data[i].begin();
-    
-    //displayLocationData(current);
-    std::cout << "User1\nUser2" << std::endl;
+        
     clock_t startTime;
     clock_t sumTime = 0;
     double secondsPassed;
