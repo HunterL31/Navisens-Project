@@ -130,13 +130,18 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
 {
     std::cout.precision(10);
 
-    std::vector<int> nodeIds;
-
     // Mainly used to clear the terminal so that the text is easier to read as it flashes across the screen
     std::cout << "\n\n\n\n\n\n\n";
     for(int i = 0; i < loc.size(); i++)
     {
-        nodeIds = map.getIds(loc[i]);
+        osmium::Location userLocation(loc[i].navLon, loc[i].navLat);
+        
+        // The id of every node within the same tile as the user
+        std::vector<int> nodeIds = map.getIds(userLocation);
+
+        // Information on every node tagged as a building within the same tile as the user
+        std::vector<building> buildings = map.getBuildings(userLocation);
+        
         std::cout << "User " << i + 1 << std::endl;
         if(loc[i].timestamp != NULL)
         {
@@ -144,7 +149,10 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
             std::cout << "Navisense Latitude: " << loc[i].navLat << " | GPS Latitude: " << loc[i].gpsLat << std::endl;
             std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
-            std::cout << "Relevant node id count: " << nodeIds.size() << std::endl;
+            /*
+            std::cout << "Relevant node count: " << nodeIds.size() << std::endl;
+            std::cout << "Relevant building count: " << buildings.size() << std::endl;               
+            */
         }
     }
 }
