@@ -181,12 +181,12 @@ void parseData(std::vector<std::vector<locationEntry>> &data, Map &map)
     std::vector<std::vector<locationEntry>::iterator> it(data.size());
     for(int i = 0; i < data.size(); i++)
         it[i] = data[i].begin();
-        
+
     clock_t startTime;
     clock_t sumTime = 0;
     double secondsPassed;
     
-    sf::RenderWindow window(sf::VideoMode(1, 1), "Dungeon Generator");
+    sf::RenderWindow window(sf::VideoMode(1, 1), "Location Data Parser");
     while (window.isOpen()) 
     {
 		sf::Event event;
