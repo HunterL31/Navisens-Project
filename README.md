@@ -1,4 +1,5 @@
 # Navisens-Project
+Install sfml using sudo apt-get install libsfml-dev
 Run with ./Main map.osm user1.csv user2.csv<br/>
 Main-Name of binary file<br/>
 map.osm-Name of osm file that has been downloaded prior to execution of program<br/>
