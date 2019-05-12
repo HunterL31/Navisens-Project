@@ -141,6 +141,9 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
 
         // Information on every node tagged as a building within the same tile as the user
         std::vector<building> buildings = map.getBuildings(userLocation);
+
+        // Information on every highway that the user will encounter
+        std::vector<highway> highways = map.getHighways();
         
         std::cout << "User " << i + 1 << std::endl;
         if(loc[i].timestamp != NULL)
@@ -151,7 +154,8 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
             /*
             std::cout << "Relevant node count: " << nodeIds.size() << std::endl;
-            std::cout << "Relevant building count: " << buildings.size() << std::endl;               
+            std::cout << "Relevant building count: " << buildings.size() << std::endl;   
+            std::cout << "Nearby roads count: " << highways.size() << std::endl;            
             */
         }
     }

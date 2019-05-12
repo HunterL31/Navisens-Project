@@ -32,6 +32,12 @@ struct building {
     std::string height;
 };
 
+struct highway {
+    std::vector<int> nodeIds;
+    std::string type;
+    std::string name;
+};
+
 // Handler for osmium reader that gathers relevant data for all nodes
 class nodeHandler : public osmium::handler::Handler {
 
@@ -62,11 +68,11 @@ class buildingHandler : public osmium::handler::Handler {
                 else if (!std::strncmp(tag.key(), "addr:housenumber", 16))
                     tempBuilding.houseNumber = tag.value();
                 else if (!std::strncmp(tag.key(), "addr:postcode", 13))
-                    tempBuilding.postalCode == tag.value();
+                    tempBuilding.postalCode = tag.value();
                 else if (!std::strncmp(tag.key(), "building", 8))
-                    tempBuilding.type == tag.value();
+                    tempBuilding.type = tag.value();
                 else if (!std::strncmp(tag.key(), "height", 6))
-                    tempBuilding.height == tag.value();
+                    tempBuilding.height = tag.value();
            }
            buildings.push_back(tempBuilding);
         }
@@ -83,18 +89,50 @@ class buildingHandler : public osmium::handler::Handler {
         std::vector<building> buildings;
 };
 
+// Handler for osmium reader that gathers all highways and stores their information in a custom struct
+class highwayHandler : public osmium::handler::Handler {
+    void outputWays(const osmium::Way& way) {
+        const osmium::TagList& tags = way.tags();
+        if(tags.has_key("highway")){
+            highway tempHighway;
+            for(auto& node : way.nodes())
+                tempHighway.nodeIds.push_back(node.ref());
+
+            for(const osmium::Tag& tag : tags) {
+                if(!std::strncmp(tag.key(), "highway", 7))
+                    tempHighway.type = tag.value();
+                if(!std::strncmp(tag.key(), "name", 4))
+                    tempHighway.name = tag.value();
+            }
+            highways.push_back(tempHighway);
+        }
+    }
+    public:
+        void way(const osmium::Way& way){
+            outputWays(way);
+        }
+        std::vector<highway> getHighways(){
+            return highways;
+        }
+    private:
+        std::vector<highway> highways;
+};
+
 class Map 
 {
     public:
         Map(std::vector<std::vector<locationEntry>> &data, std::string osmFile);
         std::vector<int> getIds(osmium::Location &loc);
         std::vector<building> getBuildings(osmium::Location &loc);
+        std::vector<highway> getHighways();
 
     private:
         void gatherNodes();
+        bool checkForId(int id);
         std::vector<osmium::geom::Tile> tiles;
         std::vector<std::pair<int, osmium::geom::Tile>> nodeIds;
         std::vector<building> nearbyBuildings;
+        std::vector<highway> nearbyHighways;
         std::string osmFile;
 };
 
@@ -130,6 +168,14 @@ Map::Map(std::vector<std::vector<locationEntry>> &data, std::string file)
     gatherNodes();
 }
 
+bool Map::checkForId(int id)
+{
+    for(auto& node : nodeIds)
+        if(node.first == id)
+            return true;
+    return false;
+}
+
 /*
 *   Input: osm file name
 *   Output: Nothing
@@ -139,16 +185,21 @@ void Map::gatherNodes()
 {
     std::vector<std::pair<osmium::Location, int>> nodes;
     std::vector<building> buildings;
+    std::vector<highway> highways;
     try{
         osmium::io::Reader reader{osmFile, osmium::osm_entity_bits::node};
         nodeHandler nHandler;
         buildingHandler bHandler;
+        highwayHandler hHandler;
 
-        osmium::apply(reader, nHandler, bHandler);
+        osmium::apply(reader, nHandler, bHandler, hHandler);
         reader.close();
 
         nodes = nHandler.getNodes();
         buildings = bHandler.getBuildings();
+        highways = hHandler.getHighways();
+
+        std::cout << "Nodes: " << nodes.size() << " | Buildings: " << buildings.size() << " | " << "Highways: " << highways.size() << std::endl;
 
         for(auto& loc: nodes){
             osmium::geom::Tile tempTile(16, loc.first);
@@ -163,6 +214,18 @@ void Map::gatherNodes()
                 if(tile == tempTile)
                     nearbyBuildings.push_back(b);
         }
+
+        for(auto& highway : highways){
+            for(auto& nid : highway.nodeIds){
+                if(checkForId(nid)){
+                    nearbyHighways.push_back(highway);
+                    break;
+                }
+            }       
+        }
+
+        std::cout << "Nodes: " << nodeIds.size() << " | Buildings: " << nearbyBuildings.size() << " | " << "Highways: " << nearbyHighways.size() << std::endl;
+        
     } catch(const std::exception& e){
         std::cerr << e.what() << '\n';
         std::exit(1);
@@ -204,5 +267,10 @@ std::vector<building> Map::getBuildings(osmium::Location &loc)
     }
 
     return buildings;
+}
+
+std::vector<highway> Map::getHighways()
+{
+    return nearbyHighways;
 }
 #endif
