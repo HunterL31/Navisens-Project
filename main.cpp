@@ -11,20 +11,26 @@
 #include <chrono>
 #include <thread>
 
+#include "map.h"
+
+#include <osmium/osm/types.hpp>
+#include <osmium/io/xml_input.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 #include <boost/tokenizer.hpp>
 
-// Holds the values for a single entry in the user log file
-struct locationEntry {
-    double timestamp = NULL;    // Timestamp value
-    double navLat;              // Navisens Latitude/Longitude/Altitude
-    double navLon;
-    double navAlt;
-    double gpsLat;              // GPS Latitude/Longitude/Altitude
-    double gpsLon;
-    double gpsAlt;
-};
+/*
+*   Input: locationEntry vector and name of osm file
+*   Output: Map object that contains the id of every node that exists in the same osm tile as one of the coordinates in data
+*   Description: createMap creates a map object that can be queried with a location to return the id of every node that exists
+*                within the same osm tile
+*/
+Map createMap(std::vector<std::vector<locationEntry>> &data, std::string osmFile){
+
+    Map map(data, osmFile);
+
+    return map;
+}
 
 /*
 *   Input: Tokenized string vector of a single line from a csv file
@@ -116,18 +122,21 @@ void displayLocationData(locationEntry loc)
 }
 
 /*
-*   Input: locationEntry object vector
-*   Output: Neatly formatted values for each object in the vector
+*   Input: locationEntry object vector and Map object
+*   Output: Neatly formatted values for each object in the vector including a list of node ids nearby
 *   Description: Used to print out the values of every locationEntry object in a vector
 */
-void displayLocationData(std::vector<locationEntry> &loc)
+void displayLocationData(std::vector<locationEntry> &loc, Map &map)
 {
     std::cout.precision(10);
+
+    std::vector<int> nodeIds;
 
     // Mainly used to clear the terminal so that the text is easier to read as it flashes across the screen
     std::cout << "\n\n\n\n\n\n\n";
     for(int i = 0; i < loc.size(); i++)
     {
+        nodeIds = map.getIds(loc[i]);
         std::cout << "User " << i + 1 << std::endl;
         if(loc[i].timestamp != NULL)
         {
@@ -135,6 +144,7 @@ void displayLocationData(std::vector<locationEntry> &loc)
             std::cout << "Navisense Latitude: " << loc[i].navLat << " | GPS Latitude: " << loc[i].gpsLat << std::endl;
             std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
+            std::cout << "Relevant node id count: " << nodeIds.size() << std::endl;
         }
     }
 }
@@ -145,8 +155,9 @@ void displayLocationData(std::vector<locationEntry> &loc)
 *   Description: Once the csv files have been tokenized this function prints out the data values in real time 
 *                allowing for speed and directional changes 
 */
-void parseData(std::vector<std::vector<locationEntry>> data)
+void parseData(std::vector<std::vector<locationEntry>> &data, Map &map)
 {
+    std::cout << "Starting data stream" << std::endl;
     bool play = false;
     bool forward = true;
     bool update = false;
@@ -159,8 +170,8 @@ void parseData(std::vector<std::vector<locationEntry>> data)
     for(int i = 0; i < data.size(); i++)
         it[i] = data[i].begin();
     
-    displayLocationData(current);
-
+    //displayLocationData(current);
+    std::cout << "User1\nUser2" << std::endl;
     clock_t startTime;
     clock_t sumTime = 0;
     double secondsPassed;
@@ -291,7 +302,7 @@ void parseData(std::vector<std::vector<locationEntry>> data)
             // If the current data vector has been updated, display the new data
             if(update)
             {
-                displayLocationData(current);
+                displayLocationData(current, map);
                 update = false;
             }
         }
@@ -310,14 +321,17 @@ int main(int argc, char *argv[])
     // Vector to hold any ammount of user log files
     vector<string>users;
 
+    string osmFile = argv[1];
+
     // Load each argument (csv filename)
-    for(int i = 1; i < argc; i++)
+    for(int i = 2; i < argc; i++)
         users.push_back(argv[i]);
 
     // Vector to hold the entries to each users log files
     vector<vector<locationEntry>> data;
 
     // For each user log file, tokenize its entries and store them in the data vector
+    std::cout << "Tokenizing csv files" << std::endl;
     for(int i = 0; i < users.size(); i++)
     {
         vector<locationEntry> temp;
@@ -325,8 +339,11 @@ int main(int argc, char *argv[])
         data.push_back(temp);
     }
     
+    std::cout << "Gathering map data from osm file" << std::endl;
+    Map map = createMap(data, osmFile);
+
     // Function to handle moving through data
-    parseData(data);
+    parseData(data, map);
     
     return 0;
 }
