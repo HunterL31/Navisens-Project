@@ -12,6 +12,7 @@
 #include <thread>
 
 #include "map.h"
+#include "data.h"
 
 #include <osmium/osm/types.hpp>
 #include <osmium/io/xml_input.hpp>
@@ -131,32 +132,30 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
     std::cout.precision(10);
 
     // Mainly used to clear the terminal so that the text is easier to read as it flashes across the screen
-    std::cout << "\n\n\n\n\n\n\n";
+    //std::cout << "\n\n\n\n\n\n\n";
     for(int i = 0; i < loc.size(); i++)
     {
         osmium::Location userLocation(loc[i].navLon, loc[i].navLat);
         
         // The id of every node within the same tile as the user
-        std::vector<int> nodeIds = map.getIds(userLocation);
+        //std::vector<int> nodeIds = map.getIds(userLocation);
 
-        // Information on every node tagged as a building within the same tile as the user
+        // Information on every building within the same tile as the user
         std::vector<building> buildings = map.getBuildings(userLocation);
 
         // Information on every highway that the user will encounter
-        std::vector<highway> highways = map.getHighways();
+        std::vector<highway> highways = map.getHighways(userLocation);
         
         std::cout << "User " << i + 1 << std::endl;
-        if(loc[i].timestamp != NULL)
+        if(loc[i].timestamp != -1)
         {
             std::cout << "Timestamp: " << loc[i].timestamp << std::endl;
             std::cout << "Navisense Latitude: " << loc[i].navLat << " | GPS Latitude: " << loc[i].gpsLat << std::endl;
             std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
-            /*
-            std::cout << "Relevant node count: " << nodeIds.size() << std::endl;
-            std::cout << "Relevant building count: " << buildings.size() << std::endl;   
-            std::cout << "Nearby roads count: " << highways.size() << std::endl;            
-            */
+            
+            std::cout << "Buildings: " << buildings.size() << " | " << "Highways: " << highways.size() << std::endl;  
+            
         }
     }
 }
@@ -170,10 +169,10 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
 void parseData(std::vector<std::vector<locationEntry>> &data, Map &map)
 {
     std::cout << "Starting data stream" << std::endl;
-    bool play = false;
-    bool forward = true;
-    bool update = false;
-    float speed = 1;
+    bool play = false;      // Whether or not the data stream is currently being ran
+    bool forward = true;    // Which direction data stream is moving in. true = forward, false = backwards
+    bool update = false;    // Whether or not the "current" location entries have been updated
+    float speed = 1;        // Current speed of playback
 
     locationEntry blank;
 
@@ -183,7 +182,7 @@ void parseData(std::vector<std::vector<locationEntry>> &data, Map &map)
         it[i] = data[i].begin();
 
     clock_t startTime;
-    clock_t sumTime = 0;
+    clock_t sumTime = 0;//35000000;
     double secondsPassed;
     
     sf::RenderWindow window(sf::VideoMode(1, 1), "Location Data Parser");
@@ -348,7 +347,7 @@ int main(int argc, char *argv[])
         tokenizeLog(temp, users[i]);
         data.push_back(temp);
     }
-    
+
     std::cout << "Gathering map data from osm file" << std::endl;
     Map map = createMap(data, osmFile);
 
