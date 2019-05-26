@@ -15,7 +15,7 @@
 #include <osmium/relations/relations_manager.hpp>
 #include <osmium/geom/tile.hpp>
 
-#define ZOOM 13
+#define ZOOM 17
 /* Zoom Value Meaning
 * 11 - City
 * 12 - Town/City District
@@ -33,6 +33,7 @@ class Map
         Map(std::vector<std::vector<locationEntry>> &data, std::string osmFile);
         std::vector<int> getIds(osmium::Location &loc);
         std::vector<building> getBuildings(osmium::Location &loc);
+        std::vector<building> getBuildings();
         std::vector<highway> getHighways(osmium::Location &loc);
 
     private:
@@ -43,7 +44,6 @@ class Map
         std::vector<building> nearbyBuildings;
         std::vector<highway> nearbyHighways;
         std::string osmFile;
-
         std::map<int, osmium::Location> nodeHashMap;
 };
 
@@ -116,14 +116,19 @@ std::vector<building> Map::getBuildings(osmium::Location &loc)
         }else if(b.nodeLocations.size() > 0){
             for(auto& l : b.nodeLocations){
                 osmium::geom::Tile tempTile(ZOOM, l);
-                if(tempTile == userTile)
+                if(tempTile == userTile){
                     buildings.push_back(b);
                     break;
+                }
             }
         }
     }
-
     return buildings;
+}
+
+std::vector<building> Map::getBuildings()
+{
+    return nearbyBuildings;
 }
 
 /*

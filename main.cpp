@@ -10,6 +10,8 @@
 #include <string>
 #include <chrono>
 #include <thread>
+#include <math.h>
+#include <cmath>
 
 #include "map.h"
 #include "data.h"
@@ -19,6 +21,127 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/OpenGL.hpp>
 #include <boost/tokenizer.hpp>
+
+void outputJson(std::vector<building> &buildings, std::string filename){
+
+    std::ofstream myFile;
+    
+    // Every entry is a new building which has a set of coordinates that outline it
+    std::vector<featurePolygon> featureCollection;
+
+   for(auto& building : buildings)
+   {
+       if(building.nodeLocations.size() > 2)
+       {
+           featurePolygon newFeature;
+           newFeature.type = "\"Polygon\"";
+           newFeature.entered = building.entered;
+           for(auto& node : building.nodeLocations)
+           {
+                // Coordinate for this node
+                std::string coord = "[" + std::to_string(node.lon()) + ", " + std::to_string(node.lat()) + "]";
+
+                newFeature.coordinates.push_back(coord);
+           }
+           featureCollection.push_back(newFeature);
+       }
+   }
+
+/*
+ *  Syntax for geojson file is as follows
+ * {
+ *  "type": "FeatureCollection",
+ *  "features": [
+ *      {
+ *          "type": "Feature",
+ *          "geometry": {
+ *              "type": "Polygon",
+ *              "coordinates": [
+ *                  [[lon1, lat1], [lon2, lat2]...]
+ *              ]
+ *          },
+ *          "properties": {
+ *              "stroke": "#color"
+ *          }
+ *      }, ...
+ *  ]
+ * }
+*/
+
+   myFile.open(filename);
+   myFile << "{\"type\": \"FeatureCollection\", \"features\": [";
+   for(int i = 0; i < featureCollection.size(); i++)
+   {
+        myFile << "{\"type\": \"Feature\", \"geometry\": { \"type\": ";
+        myFile << featureCollection[i].type + ", \"coordinates\":  [[";
+        for(int j = 0; j < featureCollection[i].coordinates.size(); j++){
+            myFile << featureCollection[i].coordinates[j];
+            if( j != featureCollection[i].coordinates.size() - 1)
+                myFile << ", ";
+        }
+        myFile << "]] }, \"properties\": {";
+        myFile << "\"stroke\":\" ";
+        if(featureCollection[i].entered)
+            myFile << "#16e333";
+        else
+            myFile << "#449186";
+        myFile << "\" ";
+        myFile << "} }";
+        if(i != featureCollection.size() - 1)
+            myFile << ",";
+   }
+   myFile << "] }";
+   myFile.close();
+   
+}
+
+void outputJson(std::vector<locationEntry> &user, std::string filename)
+{
+    std::ofstream myFile;
+    std::cout << "Outputting user location data to " << filename << std::endl;
+    std::vector<featureLineString> featureCollection;
+
+    featureLineString newFeature1, newFeature2;
+    newFeature1.type = "\"LineString\"";
+    newFeature2.type = "\"LineString\"";
+    newFeature1.user = "nav";
+    newFeature2.user = "gps";
+    for(auto& location : user)
+    {
+        std::string navCoord = "[" + std::to_string(location.navLon) + ", " + std::to_string(location.navLat) + "]";
+        std::string gpsCoord = "[" + std::to_string(location.gpsLon) + ", " + std::to_string(location.gpsLat) + "]";
+        newFeature1.coordinates.push_back(navCoord);
+        newFeature2.coordinates.push_back(gpsCoord);
+    }
+
+    featureCollection.push_back(newFeature1);
+    featureCollection.push_back(newFeature2);
+
+    myFile.open(filename);
+    myFile << "{\"type\": \"FeatureCollection\", \"features\": [";
+    for(int i = 0; i < featureCollection.size(); i++)
+    {
+        myFile << "{\"type\": \"Feature\", \"geometry\": { \"type\": ";
+        myFile << featureCollection[i].type + ", \"coordinates\":  [";
+        for(int j = 0; j < featureCollection[i].coordinates.size(); j++){
+                myFile << featureCollection[i].coordinates[j];
+                if( j != featureCollection[i].coordinates.size() - 1)
+                    myFile << ", ";
+        }
+        myFile << "] }, \"properties\": {";
+        myFile << "\"stroke\":\" ";
+        if(i == 0)
+            myFile << "#d11414";
+        else
+            myFile << "#1423d1";
+        myFile << "\"";
+        myFile << "} }";
+        if(i != featureCollection.size() - 1)
+            myFile << ",";
+    }
+    myFile << "] }";
+   myFile.close();
+}
 
 /*
 *   Input: locationEntry vector and name of osm file
@@ -120,6 +243,77 @@ void displayLocationData(locationEntry loc)
     std::cout << "Navisense Latitude: " << loc.navLat << " | GPS Latitude: " << loc.gpsLat << std::endl;
     std::cout << "Navisense Longitude: " << loc.navLon << " | GPS Longitude: " << loc.gpsLon << std::endl;
     std::cout << "Navisense Altitude: " << loc.navAlt << " | GPS Altitude: " << loc.gpsAlt << std::endl;
+    
+}
+
+/*
+* Input: two pairs of latitudes/longitudes
+* Output: Difference between the two points
+* Description: Calculates the angle between two points on a plane
+*/
+double angle2D(double lat1, double lon1, double lat2, double lon2)
+{
+    double theta1 = atan2(lat1, lon1);
+    double theta2 = atan2(lat2, lon2);
+    double dtheta = theta2 - theta1;
+    while(dtheta > M_PI)
+        dtheta -= (M_PI * 2);
+    while(dtheta <  -M_PI)
+        dtheta += (M_PI * 2);
+    return(dtheta);
+}
+
+/*
+* Input: Building vecotr, user latitude, user longitude
+* Output: none:
+* Checks each building for whether or not it contains the users location and if it does, it marks that building
+*/
+void pointWithinBuilding(std::vector<building> &buildings, double lat, double lon)
+{
+    int counter = 0;
+    for(auto& building : buildings)
+    {
+        if(building.nodeLocations.size() < 3 || building.entered == true)
+            continue;
+        
+        int i;
+        double angle=0;
+        int n = building.nodeLocations.size();
+        double p1lat, p1lon;
+        double p2lat, p2lon;
+
+        for (i=0;i<n;i++) {
+            p1lat = building.nodeLocations[i].lat() - lat;
+            p1lon = building.nodeLocations[i].lon() - lon;
+            p2lat = building.nodeLocations[(i+1)%n].lat() - lat;
+            p2lon = building.nodeLocations[(i+1)%n].lon() - lon;
+            angle += angle2D(p1lat,p1lon,p2lat,p2lon);
+        }
+        if (abs(angle) >= M_PI)
+            building.entered = true;    
+    }
+}
+
+/*
+* Input: Map object, User locaitons, unique user identifier
+* Output: A GeoJSON file containing the buildings the user encounters as well as which ones are entered
+* Description: Takes in a users location data, their user number, and the buildings in order to calculate which buildings this specific user enters
+*/
+void getOccupiedBuildings(Map &map, std::vector<locationEntry> &user, int usernum)
+{
+    //Get a list of every building on the map
+    std::vector<building> buildings = map.getBuildings();
+    std::cout << "Checking " << buildings.size() << " buildings against " << user.size() << " locations for user " << usernum << std::endl;
+
+    for(auto& location : user)
+    {
+        pointWithinBuilding(buildings, location.navLat, location.navLon);
+    }
+
+    std::string filename = "user";
+    filename.append(std::to_string(usernum));
+    filename.append("buildings.geojson");
+    outputJson(buildings, filename);
 }
 
 /*
@@ -131,22 +325,21 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
 {
     std::cout.precision(10);
 
-    // Mainly used to clear the terminal so that the text is easier to read as it flashes across the screen
-    //std::cout << "\n\n\n\n\n\n\n";
     for(int i = 0; i < loc.size(); i++)
     {
         osmium::Location userLocation(loc[i].navLon, loc[i].navLat);
+        
+        osmium::geom::Tile userTile(ZOOM, userLocation);
         
         // The id of every node within the same tile as the user
         //std::vector<int> nodeIds = map.getIds(userLocation);
 
         // Information on every building within the same tile as the user
         std::vector<building> buildings = map.getBuildings(userLocation);
-
+        
         // Information on every highway that the user will encounter
         std::vector<highway> highways = map.getHighways(userLocation);
         
-        std::cout << "User " << i + 1 << std::endl;
         if(loc[i].timestamp != -1)
         {
             std::cout << "Timestamp: " << loc[i].timestamp << std::endl;
@@ -154,7 +347,8 @@ void displayLocationData(std::vector<locationEntry> &loc, Map &map)
             std::cout << "Navisense Longitude: " << loc[i].navLon << " | GPS Longitude: " << loc[i].gpsLon << std::endl;
             std::cout << "Navisense Altitude: " << loc[i].navAlt << " | GPS Altitude: " << loc[i].gpsAlt << std::endl;
             
-            std::cout << "Buildings: " << buildings.size() << " | " << "Highways: " << highways.size() << std::endl;  
+            std::cout << "Buildings: " << buildings.size() << " | " << "Highways: " << highways.size() << std::endl; 
+            std::cout << "Current tile: " << userTile.x << ", " << userTile.y << std::endl; 
             
         }
     }
@@ -343,14 +537,23 @@ int main(int argc, char *argv[])
     std::cout << "Tokenizing csv files" << std::endl;
     for(int i = 0; i < users.size(); i++)
     {
+        std::string filename;
         vector<locationEntry> temp;
         tokenizeLog(temp, users[i]);
         data.push_back(temp);
+        
+        filename.append("user");
+        filename.append(std::to_string(i+1));
+        filename.append("path.geojson");
+        outputJson(data[i], filename);
     }
 
     std::cout << "Gathering map data from osm file" << std::endl;
     Map map = createMap(data, osmFile);
 
+    for(int i = 0; i < data.size(); i++)
+        getOccupiedBuildings(map, data[i], i+1);
+    
     // Function to handle moving through data
     parseData(data, map);
     

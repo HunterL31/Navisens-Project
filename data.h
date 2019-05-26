@@ -27,6 +27,7 @@ struct building {
     std::string postalCode;
     std::string height;
     std::string name;
+    bool entered = false;
 };
 
 struct highway {
@@ -35,4 +36,21 @@ struct highway {
     std::string name;
 };
 
+struct featurePolygon {
+    std::string type;
+    std::vector<std::string> coordinates;
+    bool entered = false;
+};
+
+struct featureMultiLineString {
+    std::string type;
+    std::vector<std::string> coordinates1;
+    std::vector<std::string> coordinates2;
+};
+
+struct featureLineString {
+    std::string type;
+    std::string user;
+    std::vector<std::string> coordinates;
+};
 #endif
